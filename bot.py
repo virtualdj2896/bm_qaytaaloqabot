@@ -1,23 +1,22 @@
 import os
-from telegram.ext import ApplicationBuilder
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
     MessageHandler,
-    filters,
     ConversationHandler,
     ContextTypes,
+    filters,
 )
 
 # Bosqichlar
 ASK_PRODUCT, ASK_ADDRESS, ASK_PHONE = range(3)
 
-# Guruh chat ID (sizga moslashtiring)
+# .env orqali o'qiladigan maxfiy ma'lumotlar
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-GROUP_CHAT_ID = os.getenv("GROUP_CHAT_ID")
+GROUP_CHAT_ID = int(os.getenv("GROUP_CHAT_ID"))  # Render'da -100... formatda kiriting
 
-# Har bir foydalanuvchi uchun alohida saqlanadigan ma'lumot
+# Har bir foydalanuvchi uchun alohida ma'lumot saqlanadi
 user_data_dict = {}
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -54,11 +53,11 @@ async def ask_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Guruhga yuborish
     await context.bot.send_message(chat_id=GROUP_CHAT_ID, text=message, parse_mode="Markdown")
 
-    await update.message.reply_text("Rahmat! Buyurtmangiz qabul qilindi.")
+    await update.message.reply_text("✅ Rahmat! Buyurtmangiz qabul qilindi.")
     return ConversationHandler.END
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Jarayon bekor qilindi.")
+    await update.message.reply_text("❌ Jarayon bekor qilindi.")
     return ConversationHandler.END
 
 def main():
