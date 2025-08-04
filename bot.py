@@ -1,3 +1,5 @@
+import os
+from telegram.ext import ApplicationBuilder
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
@@ -12,7 +14,8 @@ from telegram.ext import (
 ASK_PRODUCT, ASK_ADDRESS, ASK_PHONE = range(3)
 
 # Guruh chat ID (sizga moslashtiring)
-GROUP_CHAT_ID = -1001234567890  # <-- O'zingizning guruh chat_id-ni yozing
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+GROUP_CHAT_ID = os.getenv("GROUP_CHAT_ID")
 
 # Har bir foydalanuvchi uchun alohida saqlanadigan ma'lumot
 user_data_dict = {}
@@ -59,7 +62,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 def main():
-    app = ApplicationBuilder().token("BOT_TOKEN").build()
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
