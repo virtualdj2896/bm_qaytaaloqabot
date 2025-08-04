@@ -1,5 +1,4 @@
 import os
-import asyncio
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
@@ -9,74 +8,72 @@ from telegram.ext import (
     ContextTypes,
     filters,
 )
+from dotenv import load_dotenv
 
-# Bosqichlar
-ASK_PRODUCT, ASK_ADDRESS, ASK_PHONE = range(3)
-
-# .env orqali o'qiladi
+# .env fayldan o‘zgaruvchilarni yuklab olamiz
+load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-GROUP_CHAT_ID = int(os.getenv("GROUP_CHAT_ID"))  # -100 bilan boshlanadi
+GROUP_CHAT_ID = int(os.getenv("GROUP_CHAT_ID"))
 
-# Har bir foydalanuvchi uchun vaqtincha ma'lumot saqlash
-user_data_dict = {}
+# Conversation bosqichlari
+ASK_NAME, ASK_QUANTITY, ASK_ADDRESS, ASK_PHONE = range(4)
 
-# /start buyrug'i
+# Boshlash
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.from_user.id
-    user_data_dict[user_id] = {'name': update.message.from_user.full_name}
-    await update.message.reply_text("Qancha mahsulot kerak?")
-    return ASK_PRODUCT
+    await update.message.reply_text("Ismingizni kiriting:")
+    return ASK_NAME
 
-# Mahsulot soni
-async def ask_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.from_user.id
-    user_data_dict[user_id]['product'] = update.message.text
+# Ism qabul qilish
+async def ask_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["name"] = update.message.text
+    await update.message.reply_text("Mahsulot sonini kiriting:")
+    return ASK_QUANTITY
+
+# Mahsulot soni qabul qilish
+async def ask_quantity(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["quantity"] = update.message.text
     await update.message.reply_text("Yetkazib berish manzilini kiriting:")
     return ASK_ADDRESS
 
-# Manzil
+# Manzil qabul qilish
 async def ask_address(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.from_user.id
-    user_data_dict[user_id]['address'] = update.message.text
-    await update.message.reply_text("Aloqa uchun telefon raqamingizni kiriting:")
+    context.user_data["address"] = update.message.text
+    await update.message.reply_text("Aloqa raqamingizni kiriting:")
     return ASK_PHONE
 
-# Telefon va yakunlash
+# Raqam qabul qilish va xabar yuborish
 async def ask_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.from_user.id
-    user_data_dict[user_id]['phone'] = update.message.text
+    context.user_data["phone"] = update.message.text
 
-    data = user_data_dict[user_id]
+    # Hamma ma’lumotlarni yig‘amiz
+    info = context.user_data
     message = (
-        f"📦 *Yangi buyurtma!*\n"
-        f"👤 Ism: {data['name']}\n"
-        f"🔢 Mahsulot: {data['product']}\n"
-        f"📍 Manzil: {data['address']}\n"
-        f"📞 Aloqa: {data['phone']}"
+        f"🛒 *Yangi buyurtma!*\n\n"
+        f"👤 Ismi: {info['name']}\n"
+        f"📦 Mahsulot soni: {info['quantity']}\n"
+        f"📍 Manzil: {info['address']}\n"
+        f"📞 Aloqa: {info['phone']}"
     )
 
-    # Guruhga yuborish
+    # Guruhga yuboramiz
     await context.bot.send_message(chat_id=GROUP_CHAT_ID, text=message, parse_mode="Markdown")
-    await update.message.reply_text("✅ Rahmat! Buyurtmangiz qabul qilindi.")
-
-    # Ma'lumotni tozalash
-    user_data_dict.pop(user_id, None)
+    await update.message.reply_text("✅ Buyurtma qabul qilindi. Tez orada siz bilan bog'lanamiz.")
     return ConversationHandler.END
 
 # Bekor qilish
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("❌ Buyurtma jarayoni bekor qilindi.")
-    user_data_dict.pop(update.message.from_user.id, None)
+    await update.message.reply_text("❌ Buyurtma bekor qilindi.")
     return ConversationHandler.END
 
-# Asosiy ishga tushirish funksiyasi
+# Botni ishga tushirish
 async def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
         states={
-            ASK_PRODUCT: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_product)],
+            ASK_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_name)],
+            ASK_QUANTITY: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_quantity)],
             ASK_ADDRESS: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_address)],
             ASK_PHONE: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_phone)],
         },
@@ -88,4 +85,5 @@ async def main():
     await app.run_polling()
 
 if __name__ == "__main__":
+    import asyncio
     asyncio.run(main())
